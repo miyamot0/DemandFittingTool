@@ -27,6 +27,9 @@
 *.out
 *.app
 
+# Build dir
+/Debug/
+
 # =========================
 # Operating System Files
 # =========================
