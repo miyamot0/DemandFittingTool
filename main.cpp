@@ -1,9 +1,45 @@
-/*
- * main.cpp
- *
- *  Created on: 8 Jun 2017
- *      Author: testing
- */
+/**
+   Copyright 2017 Shawn Gilroy
+
+   This file is part of Demand Fitting Tool.
+
+   Demand Curve Analyzer is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, version 3.
+
+   Demand Curve Analyzer is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with Demand Curve Analyzer.  If not, see http://www.gnu.org/licenses/.
+
+   The Demand Fitting Tool is a program to assist researchers in behavior economics.
+
+   Email: shawn(dot)gilroy(at)temple.edu
+
+   ====================================================================================
+
+   ALGLIB 3.11.0 (source code generated 2017-05-11)
+   Copyright (c) Sergey Bochkanov (ALGLIB project).
+
+   >>> SOURCE LICENSE >>>
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation (www.fsf.org); either version 2 of the
+   License, or (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   A copy of the GNU General Public License is available at
+   http://www.fsf.org/licensing/licenses
+   >>> END OF LICENSE >>>
+
+  */
 
 #include <iostream>
 #include <sstream>
@@ -19,27 +55,6 @@ int main(int argc, char *argv[])
     std::string mConsumption = std::string(argv[2]);
     std::string mModel = std::string(argv[3]);
     std::string mK = std::string(argv[4]);
-
-	/*
-
-    std::string mPrices;
-    std::string mConsumption;
-    std::string mModel;
-    std::string mK;
-
-    */
-
-    //mModel = "Exponential";
-    //mModel = "Exponentiated";
-    //mPrices = "[[0.0],[0.5],[1.0],[1.5],[2.0],[2.5],[3.0],[4.0],[5.0],[10.0],[15.0]]";
-    //mPrices = "[[0.0],[0.5],[1.0],[1.5],[2.0],[2.5],[3.0],[4.0],[5.0]]";
-    //mConsumption = "[1000,1000,1000,800,800,700,600,500,400]";
-    //mConsumption = "[10,10,10,8,8,7,6,5,4]";
-    //mConsumption = "[10,10,10,8,8,7,6,5,4,2,1]";
-    //mK = "fit";
-    //mK = "range";
-    //mK = "1";
-    // ~test
 
 	bool isLog = ((mModel.find("Linear") != std::string::npos) || (mModel.find("Exponential") != std::string::npos));
 

@@ -1,7 +1,7 @@
 /**
    Copyright 2017 Shawn Gilroy
 
-   This file is part of Demand Curve Analyzer, Qt port.
+   This file is part of Demand Fitting Tool.
 
    Demand Curve Analyzer is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@
    You should have received a copy of the GNU General Public License
    along with Demand Curve Analyzer.  If not, see http://www.gnu.org/licenses/.
 
-   The Demand Curve Analyzer is a tool to assist researchers in behavior economics.
+   The Demand Fitting Tool is a program to assist researchers in behavior economics.
 
    Email: shawn(dot)gilroy(at)temple.edu
 
