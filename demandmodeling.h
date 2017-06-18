@@ -1,7 +1,7 @@
 /**
    Copyright 2017 Shawn Gilroy
 
-   This file is part of Demand Fitting Tool.
+   This file is part of Demand Curve Analyzer, Qt port.
 
    Demand Curve Analyzer is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@
    You should have received a copy of the GNU General Public License
    along with Demand Curve Analyzer.  If not, see http://www.gnu.org/licenses/.
 
-   The Demand Fitting Tool is a program to assist researchers in behavior economics.
+   The Demand Curve Analyzer is a tool to assist researchers in behavior economics.
 
    Email: shawn(dot)gilroy(at)temple.edu
 
@@ -61,6 +61,7 @@ class demandmodeling
 public:
     demandmodeling();
 
+    void SetModel(const char *mString);
     void SetX(const char *mString);
     void SetY(const char *mString);
     void SetStarts(const char *mString);
@@ -70,6 +71,8 @@ public:
     lsfitstate GetState();
     ae_int_t GetInfo();
     lsfitreport GetReport();
+
+    int SignificantDigits();
 
     void FitLinear(const char *mStarts);
     void FitExponential(const char *mStarts, std::vector<double> mParams);
@@ -88,15 +91,29 @@ public:
     std::string getPmaxEString();
     std::string getIntensityString();
 
-    //std::vector<std::string> GetSteinTest(std::vector<std::string> &x, std::vector<std::string> &y);
+    std::string buildUpperBoundsKSet();
+    std::string buildStartValuesKSet(double mK);
 
-    void InitializeDefaults(bool isLog);
+    std::string buildUpperBoundsFit();
+    std::string buildStartValuesFit();
+
+    void InitializeDefaults();
+
+    void BuildLinearString(std::ostringstream &out);
+    void BuildExponentialString(std::ostringstream &out, std::string mK, std::vector<double> params);
+    void BuildExponentiatedString(std::ostringstream &out, std::string mK, std::vector<double> params);
 
     bool raisedFlag;
+
+    double likelyQ0;
+
+    int scaleAssessment;
 
 private:
     real_2d_array x;
     real_1d_array y;
+
+    real_1d_array yStored;
     real_1d_array c;
 
     real_1d_array bndl;
@@ -129,6 +146,7 @@ private:
     std::string deltaQPass;
     std::string bouncePass;
     std::string reversalpass;
+    std::string modelMode;
 
     double deltaQ;
     double bounceThreshold;

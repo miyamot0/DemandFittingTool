@@ -1,45 +1,9 @@
-/**
-   Copyright 2017 Shawn Gilroy
-
-   This file is part of Demand Fitting Tool.
-
-   Demand Curve Analyzer is free software: you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation, version 3.
-
-   Demand Curve Analyzer is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with Demand Curve Analyzer.  If not, see http://www.gnu.org/licenses/.
-
-   The Demand Fitting Tool is a program to assist researchers in behavior economics.
-
-   Email: shawn(dot)gilroy(at)temple.edu
-
-   ====================================================================================
-
-   ALGLIB 3.11.0 (source code generated 2017-05-11)
-   Copyright (c) Sergey Bochkanov (ALGLIB project).
-
-   >>> SOURCE LICENSE >>>
-   This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation (www.fsf.org); either version 2 of the
-   License, or (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-
-   A copy of the GNU General Public License is available at
-   http://www.fsf.org/licensing/licenses
-   >>> END OF LICENSE >>>
-
-  */
+/*
+ * main.cpp
+ *
+ *  Created on: 8 Jun 2017
+ *      Author: testing
+ */
 
 #include <iostream>
 #include <sstream>
@@ -50,400 +14,134 @@ using namespace std;
 int main(int argc, char *argv[])
 {
 	demandmodeling mFitter;
+    std::ostringstream out;
+	std::vector<double> params;
 
     std::string mPrices = std::string(argv[1]);
     std::string mConsumption = std::string(argv[2]);
     std::string mModel = std::string(argv[3]);
     std::string mK = std::string(argv[4]);
 
-	bool isLog = ((mModel.find("Linear") != std::string::npos) || (mModel.find("Exponential") != std::string::npos));
+    //std::string mPrices;
+    //std::string mConsumption;
+    //std::string mModel;
+    //std::string mK;
 
-	mFitter.InitializeDefaults(isLog);
+    //mModel = "Exponential";
+    //mModel = "Exponentiated";
+    //mPrices = "[[0.5],[1.0],[1.5],[2.0],[2.5],[3.0],[4.0],[5.0],[10.0],[15.0]]";
+    //mPrices = "[[0.0],[0.5],[1.0],[1.5],[2.0],[2.5],[3.0],[4.0],[5.0],[10.0],[15.0]]";
+    //mConsumption = "[3,3,2.9030899869919438,2.9030899869919438,2.845098040014257,2.7781512503836434,2.6989700043360187,2.6020599913279625,2.3010299956639813,2]";
+    //mConsumption = "[100,100,100,80,80,70,60,50,40,20,10]";
+    //mConsumption = "[10,10,10,8,8,7,6,5,4,2,1]";
 
-    std::ostringstream out;
-    out << "{";
+    //mConsumption = "[100,100,80,80,70,60,50,40,20,10]";
+    //mConsumption = "[10,10,8,8,7,6,5,4,2,1]";
+    //mConsumption = "[1,1,0.8,0.8,0.7,0.6,0.5,0.4,0.2,0.1]";
+    //mK = "fit";
+    //mK = "range";
+    //mK = "1.5";
 
-    /*
-     * Linear Model Fit conditions
-     * */
+	mFitter.InitializeDefaults();
+	mFitter.SetModel(mModel.c_str());
+	mFitter.SetX(mPrices.c_str());
+	mFitter.SetY(mConsumption.c_str());
+
     if (mModel.find("Linear") != std::string::npos)
     {
-    	mFitter.SetX(mPrices.c_str());
-    	mFitter.SetY(mConsumption.c_str());
-        mFitter.SetBounds("[+inf,+inf,+inf]", "[-inf,-inf,-inf]");
-
         /*
-         * Fit Linear demand model
-         */
+         * Linear Model Fit conditions
+         * */
+
+        mFitter.SetBounds("[+inf,+inf,+inf]", "[-inf,-inf,-inf]");
         mFitter.FitLinear("[1,1,1]");
 
-        /*
-         * Reporting results, in JSON style return
-         */
-        if ((int) mFitter.GetInfo() == 2 || (int) mFitter.GetInfo() == 5)
-        {
-            double a = mFitter.GetState().c[0];
-            double b = mFitter.GetState().c[1];
-            double L = mFitter.GetState().c[2];
-
-            double pmaxd = (1 + b)/a;
-            double omaxd = (L * pow(pmaxd, b)) / exp(a * pmaxd) * pmaxd;
-
-            double pbar = mFitter.getPbar();
-
-            out << "\"ID\":" << 1 << ",";
-            out << "\"Equation\":" << "\"Linear\"" << ",";
-            out << "\"BP0\":" << mFitter.getBP0String() << ",";
-            out << "\"BP1\":" << mFitter.getBP1String() << ",";
-            out << "\"Omaxe\":" << mFitter.getOmaxEString() << ",";
-            out << "\"Pmaxe\":" << mFitter.getPmaxEString() << ",";
-            out << "\"L\":" << L << ",";
-            out << "\"Lse\":" << mFitter.GetReport().errpar[2] << ",";
-            out << "\"b\":" << b << ",";
-            out << "\"bse\":" << mFitter.GetReport().errpar[1] << ",";
-            out << "\"a\":" << a << ",";
-            out << "\"ase\":" << mFitter.GetReport().errpar[0] << ",";
-            out << "\"R2\":" << mFitter.GetReport().r2 << ",";
-            out << "\"Elasticity\":" << "\"\"" << ",";		//pbar?
-            out << "\"MeanElasticity\":" << (b - (a * pbar)) << ",";
-            out << "\"Intensity\":" << mFitter.getIntensityString() << ",";		// get intensity
-            out << "\"Omaxd\":" << omaxd << ",";
-            out << "\"Pmaxd\":" << pmaxd << ",";
-            out << "\"RMSError\":" << mFitter.GetReport().rmserror << ",";
-            out << "\"avgerror\":" << mFitter.GetReport().avgerror << ",";
-            out << "\"Notes\":" << mFitter.GetInfo();
-        }
-        else
-        {
-            out << "\"ID\":" << 1 << ",";
-            out << "\"Equation\":" << "\"Linear\"" << ",";
-            out << "\"BP0\":" << mFitter.getBP0String() << ",";
-            out << "\"BP1\":" << mFitter.getBP1String() << ",";
-            out << "\"Omaxe\":" << mFitter.getOmaxEString() << ",";
-            out << "\"Pmaxe\":" << mFitter.getPmaxEString() << ",";
-            out << "\"L\":" << "\"\"" << ",";
-            out << "\"Lse\":" << "\"\"" << ",";
-            out << "\"b\":" << "\"\"" << ",";
-            out << "\"bse\":" << "\"\"" << ",";
-            out << "\"a\":" << "\"\"" << ",";
-            out << "\"ase\":" << "\"\"" << ",";
-            out << "\"R2\":" << "\"\"" << ",";
-            out << "\"Elasticity\":" << "\"\"" << ",";
-            out << "\"MeanElasticity\":" << "\"\"" << ",";
-            out << "\"Intensity\":" << mFitter.getIntensityString() << ",";		// get intensity
-            out << "\"Omaxd\":" << "\"\"" << ",";
-            out << "\"Pmaxd\":" << "\"\"" << ",";
-            out << "\"RMSError\":" << "\"\"" << ",";
-            out << "\"avgerror\":" << "\"\"" << ",";
-            out << "\"Notes\":" << mFitter.GetInfo();
-        }
+        mFitter.BuildLinearString(out);
     }
-    /*
-     * Exponential Model Fit conditions
-     */
     else if (mModel.find("Exponential") != std::string::npos)
     {
-    	mFitter.SetX(mPrices.c_str());
-    	mFitter.SetY(mConsumption.c_str());
-
-    	std::vector<double> params;
-
         /*
-         * Fit Exponential, with K as parameter
+         * Exponential Model Fit conditions
          */
+
     	if (mK.find("fit") != std::string::npos)
     	{
-            // K, Q0, Alpha
-            std::ostringstream mUpperBoundos;
-            mUpperBoundos << "[";
-            mUpperBoundos << ((log10(mFitter.getMaximumConsumption()) - log10(mFitter.getMinimumConsumption())) + 0.5);
-            mUpperBoundos << ", +inf, +inf]";
-
-            mFitter.SetBounds(mUpperBoundos.str().c_str(), "[0.5, 0.001, -inf]");
-
-            std::ostringstream mStartValues;
-            mStartValues << "[";
-            mStartValues << ((log10(mFitter.getMaximumConsumption()) - log10(mFitter.getMinimumConsumption())) + 0.5) / 2;
-            mStartValues << ",";
-            mStartValues << mFitter.getMaximumConsumption();
-            mStartValues << ", 0.01]";
-
             /*
              * Fit Exponential, with K as parameter
              */
-            mFitter.FitExponentialWithK(mStartValues.str().c_str());
-    	}
 
-		/*
-		 * Fit Exponential, with K as derived scaling measure
-		 */
+            mFitter.SetBounds(mFitter.buildUpperBoundsFit().c_str(), "[0.5, 0.001, -inf]");
+            mFitter.FitExponentialWithK(mFitter.buildStartValuesFit().c_str());
+    	}
     	else if (mK.find("range") != std::string::npos)
     	{
-    		mFitter.SetBounds("[+inf, +inf]", "[0.0001, -inf]");
-
-            std::ostringstream mStartValues;
-            mStartValues << "[";
-            mStartValues << mFitter.getMaximumConsumption();
-            mStartValues << ", 0.01]";
-
-    		params.push_back((log10(mFitter.getMaximumConsumption()) - log10(mFitter.getMinimumConsumption())) + 0.5);
-
     		/*
     		 * Fit Exponential, with K as derived scaling measure
     		 */
-    		mFitter.FitExponential(mStartValues.str().c_str(), params);
-    	}
 
-		/*
-		 * Fit Exponential, with K as assigned value
-		 */
+    		double mKvalue = log10(mFitter.getMaximumConsumption()) - log10(mFitter.getMinimumConsumption()) + 0.5;
+    		params.push_back(mKvalue);
+
+    		mFitter.SetBounds(mFitter.buildUpperBoundsKSet().c_str(), "[0.0001,-inf]");
+    		mFitter.FitExponential(mFitter.buildStartValuesKSet(mKvalue).c_str(), params);
+    	}
     	else
     	{
-    		mFitter.SetBounds("[+inf, +inf]", "[0.0001, -inf]");
-
-    		double mKparse = atof(mK.c_str());
-
-            std::ostringstream mStartValues;
-            mStartValues << "[";
-            mStartValues << mFitter.getMaximumConsumption();
-            mStartValues << ", 0.01]";
-
-    		params.push_back(mKparse);
-
     		/*
     		 * Fit Exponential, with K as assigned value
     		 */
-    		mFitter.FitExponential(mStartValues.str().c_str(), params);
+
+    		double mKvalue = atof(mK.c_str());
+    		params.push_back(mKvalue);
+
+    		mFitter.SetBounds(mFitter.buildUpperBoundsKSet().c_str(), "[0.0001,-inf]");
+            mFitter.FitExponential(mFitter.buildStartValuesKSet(mKvalue).c_str(), params);
     	}
 
-        /*
-         * Reporting results, in JSON style return
-         */
-        if ((int) mFitter.GetInfo() == 2 || (int) mFitter.GetInfo() == 5)
-        {
-            double alpha = (mK.find("fit") != std::string::npos) ? mFitter.GetState().c[2] : mFitter.GetState().c[1];
-            double alphase = (mK.find("fit") != std::string::npos) ? mFitter.GetReport().errpar[2] : mFitter.GetReport().errpar[1];
-
-            double k = (mK.find("fit") != std::string::npos) ? mFitter.GetState().c[0] : params[0];
-
-            std::ostringstream mKos;
-
-            if (mK.find("fit") != std::string::npos)
-            {
-            	mKos << mFitter.GetReport().errpar[0];
-            }
-            else
-            {
-            	mKos << "\"---\"";
-            }
-
-            std::string kse = mKos.str();
-
-            double q0 = (mK.find("fit") != std::string::npos) ? mFitter.GetState().c[1] : mFitter.GetState().c[0];
-            double q0se = (mK.find("fit") != std::string::npos) ? mFitter.GetReport().errpar[1] : mFitter.GetReport().errpar[0];
-
-            double pmaxd = 1/(q0 * alpha * pow(k, 1.5)) * (0.083 * k + 0.65);
-            double omaxd = (pow(10, (log10(q0) + (k * (exp(-alpha * q0 * pmaxd) - 1))))) * pmaxd;
-
-            double EV = 1/(alpha * pow(k, 1.5) * 100);
-
-            out << "\"ID\":" << 1 << ",";
-            out << "\"Equation\":" << "\"Exponential\"" << ",";
-            out << "\"BP1\":" << mFitter.getBP1String() << ",";
-            out << "\"Omaxe\":" << mFitter.getOmaxEString() << ",";
-            out << "\"Pmaxe\":" << mFitter.getPmaxEString() << ",";
-            out << "\"Omaxd\":" << omaxd << ",";
-            out << "\"Pmaxd\":" << pmaxd << ",";
-            out << "\"Alpha\":" << alpha << ",";
-            out << "\"Alphase\":" << alphase << ",";
-            out << "\"Q0d\":" << q0 << ",";
-            out << "\"Q0dse\":" << q0se << ",";
-            out << "\"K\":" << k << ",";
-            out << "\"Kse\":" << kse << ",";
-            out << "\"EV\":" << EV << ",";
-            out << "\"kMethod\":\"" << mK << "\",";
-            out << "\"R2\":" << mFitter.GetReport().r2 << ",";
-            out << "\"RMSError\":" << mFitter.GetReport().rmserror << ",";
-            out << "\"avgerror\":" << mFitter.GetReport().avgerror << ",";
-            out << "\"Notes\":" << mFitter.GetInfo();
-        }
-        else
-        {
-            out << "\"ID\":" << 1 << ",";
-            out << "\"Equation\":" << "\"Exponential\"" << ",";
-            out << "\"BP1\":" << mFitter.getBP1String() << ",";
-            out << "\"Omaxe\":" << mFitter.getOmaxEString() << ",";
-            out << "\"Pmaxe\":" << mFitter.getPmaxEString() << ",";
-            out << "\"Omaxd\":" << "\"\"" << ",";
-            out << "\"Pmaxd\":" << "\"\"" << ",";
-            out << "\"Alpha\":" << "\"\"" << ",";
-            out << "\"Alphase\":" << "\"\"" << ",";
-            out << "\"Q0d\":" << "\"\"" << ",";
-            out << "\"Q0dse\":" << "\"\"" << ",";
-            out << "\"K\":" << "\"\"" << ",";
-            out << "\"Kse\":" << "\"\"" << ",";
-            out << "\"EV\":" << "\"\"" << ",";
-            out << "\"kMethod\":\"" << mK << "\",";
-            out << "\"R2\":" << "\"\"" << ",";
-            out << "\"RMSError\":" << "\"\"" << ",";
-            out << "\"avgerror\":" << "\"\"" << ",";
-            out << "\"Notes\":" << mFitter.GetInfo();
-        }
+    	mFitter.BuildExponentialString(out, mK, params);
     }
-    /**
-     * Exponentiated Model Fit conditions
-     */
     else if (mModel.find("Exponentiated") != std::string::npos)
     {
-    	mFitter.SetX(mPrices.c_str());
-    	mFitter.SetY(mConsumption.c_str());
+        /**
+         * Exponentiated Model Fit conditions
+         */
 
-    	std::vector<double> params;
-
-		/*
-		 * Fit Exponentiated, with K as fitted parameter
-		 */
     	if (mK.find("fit") != std::string::npos)
     	{
-            // K, Q0, Alpha
-            std::ostringstream mUpperBoundos;
-            mUpperBoundos << "[";
-            mUpperBoundos << ((mFitter.getMaximumConsumption() - mFitter.getMinimumConsumption()) + 0.5);
-            mUpperBoundos << ", +inf, +inf]";
-
-            mFitter.SetBounds(mUpperBoundos.str().c_str(), "[0.5, 0.001, -inf]");
-
-            std::ostringstream mStartValues;
-            mStartValues << "[";
-            mStartValues << ((mFitter.getMaximumConsumption() - mFitter.getMinimumConsumption()) + 0.5) / 2;
-            mStartValues << ",";
-            mStartValues << mFitter.getMaximumConsumption();
-            mStartValues << ", 0.01]";
-
     		/*
     		 * Fit Exponentiated, with K as fitted parameter
     		 */
-            mFitter.FitExponentiatedWithK(mStartValues.str().c_str());
-    	}
 
-		/*
-		 * Fit Exponentiated, with K as derived scaling measure
-		 */
+    		mFitter.SetBounds(mFitter.buildUpperBoundsFit().c_str(), "[0.5, 0.001, -inf]");
+            mFitter.FitExponentiatedWithK(mFitter.buildStartValuesFit().c_str());
+    	}
     	else if (mK.find("range") != std::string::npos)
     	{
-    		mFitter.SetBounds("[+inf, +inf]", "[0.0001, -inf]");
-
-            std::ostringstream mStartValues;
-            mStartValues << "[";
-            mStartValues << mFitter.getMaximumConsumption();
-            mStartValues << ", 0.01]";
-
-    		params.push_back(((mFitter.getMaximumConsumption() - mFitter.getMinimumConsumption()) + 0.5));
-
     		/*
     		 * Fit Exponentiated, with K as derived scaling measure
     		 */
-    		mFitter.FitExponentiated(mStartValues.str().c_str(), params);
-    	}
 
-		/*
-		 * Fit Exponentiated, with K as assigned value
-		 */
+    		double mKvalue = log10(mFitter.getMaximumConsumption()) - log10(mFitter.getMinimumConsumption()) + 0.5;
+    		params.push_back(mKvalue);
+
+    		mFitter.SetBounds(mFitter.buildUpperBoundsKSet().c_str(), "[0.0001,-inf]");
+    		mFitter.FitExponentiated(mFitter.buildStartValuesKSet(mKvalue).c_str(), params);
+    	}
     	else
     	{
-    		mFitter.SetBounds("[+inf, +inf]", "[0.0001, -inf]");
-
-    		double mKparse = atof(mK.c_str());
-
-            std::ostringstream mStartValues;
-            mStartValues << "[";
-            mStartValues << mFitter.getMaximumConsumption();
-            mStartValues << ", 0.01]";
-
-    		params.push_back(mKparse);
-
     		/*
     		 * Fit Exponentiated, with K as assigned value
     		 */
-    		mFitter.FitExponentiated(mStartValues.str().c_str(), params);
+
+    		double mKvalue = atof(mK.c_str());
+    		params.push_back(mKvalue);
+
+    		mFitter.SetBounds(mFitter.buildUpperBoundsKSet().c_str(), "[0.0001,-inf]");
+    		mFitter.FitExponentiated(mFitter.buildStartValuesKSet(mKvalue).c_str(), params);
     	}
 
-        /*
-         * Reporting results, in JSON style return
-         */
-        if ((int) mFitter.GetInfo() == 2 || (int) mFitter.GetInfo() == 5)
-        {
-            double alpha = (mK.find("fit") != std::string::npos) ? mFitter.GetState().c[2] : mFitter.GetState().c[1];
-            double alphase = (mK.find("fit") != std::string::npos) ? mFitter.GetReport().errpar[2] : mFitter.GetReport().errpar[1];
-
-            double k = (mK.find("fit") != std::string::npos) ? mFitter.GetState().c[0] : params[0];
-
-            std::ostringstream mKos;
-
-            if (mK.find("fit") != std::string::npos)
-            {
-            	mKos << mFitter.GetReport().errpar[0];
-            }
-            else
-            {
-            	mKos << "\"---\"";
-            }
-
-            std::string kse = mKos.str();
-
-            double q0 = (mK.find("fit") != std::string::npos) ? mFitter.GetState().c[1] : mFitter.GetState().c[0];
-            double q0se = (mK.find("fit") != std::string::npos) ? mFitter.GetReport().errpar[1] : mFitter.GetReport().errpar[0];
-
-            double pmaxd = 1/(q0 * alpha * pow(k, 1.5)) * (0.083 * k + 0.65);
-            double omaxd = (q0 * (pow(10,(k * (exp(-alpha * q0 * pmaxd) - 1))))) * pmaxd;
-
-            double EV = 1/(alpha * pow(k, 1.5) * 100);
-
-            out << "\"ID\":" << 1 << ",";
-            out << "\"Equation\":" << "\"Exponentiated\"" << ",";
-            out << "\"BP1\":" << mFitter.getBP1String() << ",";
-            out << "\"Omaxe\":" << mFitter.getOmaxEString() << ",";
-            out << "\"Pmaxe\":" << mFitter.getPmaxEString() << ",";
-            out << "\"Omaxd\":" << omaxd << ",";
-            out << "\"Pmaxd\":" << pmaxd << ",";
-            out << "\"Alpha\":" << alpha << ",";
-            out << "\"Alphase\":" << alphase << ",";
-            out << "\"Q0d\":" << q0 << ",";
-            out << "\"Q0dse\":" << q0se << ",";
-            out << "\"K\":" << k << ",";
-            out << "\"Kse\":" << kse << ",";
-            out << "\"EV\":" << EV << ",";
-            out << "\"kMethod\":\"" << mK << "\",";
-            out << "\"R2\":" << mFitter.GetReport().r2 << ",";
-            out << "\"RMSError\":" << mFitter.GetReport().rmserror << ",";
-            out << "\"avgerror\":" << mFitter.GetReport().avgerror << ",";
-            out << "\"Notes\":" << mFitter.GetInfo();
-        }
-        else
-        {
-            out << "\"ID\":" << 1 << ",";
-            out << "\"Equation\":" << "\"Exponentiated\"" << ",";
-            out << "\"BP1\":" << mFitter.getBP1String() << ",";
-            out << "\"Omaxe\":" << mFitter.getOmaxEString() << ",";
-            out << "\"Pmaxe\":" << mFitter.getPmaxEString() << ",";
-            out << "\"Omaxd\":" << "\"\"" << ",";
-            out << "\"Pmaxd\":" << "\"\"" << ",";
-            out << "\"Alpha\":" << "\"\"" << ",";
-            out << "\"Alphase\":" << "\"\"" << ",";
-            out << "\"Q0d\":" << "\"\"" << ",";
-            out << "\"Q0dse\":" << "\"\"" << ",";
-            out << "\"K\":" << "\"\"" << ",";
-            out << "\"Kse\":" << "\"\"" << ",";
-            out << "\"EV\":" << "\"\"" << ",";
-            out << "\"kMethod\":\"" << mK << "\",";
-            out << "\"R2\":" << "\"\"" << ",";
-            out << "\"RMSError\":" << "\"\"" << ",";
-            out << "\"avgerror\":" << "\"\"" << ",";
-            out << "\"Notes\":" << mFitter.GetInfo();
-        }
+    	mFitter.BuildExponentiatedString(out, mK, params);
     }
-
-    out << "}";
 
 	cout << out.str() << endl;
 
