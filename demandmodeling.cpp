@@ -396,9 +396,9 @@ void demandmodeling::FitExponentiatedWithK(const char *mStarts)
     lsfitsetbc(state, bndl, bndu);
 
     std::ostringstream mScaleString;
-    mScaleString << "[1.0, 1.0e-";
+    mScaleString << "[1.0, 1.0, 1.0e-";
     mScaleString << (scaleAssessment + SignificantDigits());
-    mScaleString << ", 1.0]";
+    mScaleString << "]";
 
     real_1d_array s = mScaleString.str().c_str();
     lsfitsetscale(state, s);
