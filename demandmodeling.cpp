@@ -52,24 +52,25 @@
 
 using namespace std;
 
+// <!-- Generic helper -->
 void demandmodeling::SetModel(const char *mString)
 {
 	modelMode = mString;
 }
 
+// <!-- Generic helper -->
 void demandmodeling::SetX(const char *mString)
 {
     x = mString;
 }
 
+// <!-- Generic helper -->
 void demandmodeling::SetY(const char *mString)
 {
     y = mString;
     yStored = mString;
 
     likelyQ0 = getMaximumConsumption();
-
-    //mModel.find("Exponential") != std::string::npos
 
     if (modelMode.find("Exponential")  != std::string::npos)
     {
@@ -87,37 +88,44 @@ void demandmodeling::SetY(const char *mString)
     }
 }
 
+// <!-- Generic helper -->
 void demandmodeling::SetStarts(const char *mString)
 {
     c = mString;
 }
 
+// <!-- Generic helper -->
 void demandmodeling::SetBounds(const char *mUpperString, const char *mLowerString)
 {
     bndu = mUpperString;
     bndl = mLowerString;
 }
 
+// <!-- Generic helper -->
 real_1d_array demandmodeling::GetParams()
 {
     return c;
 }
 
+// <!-- Generic helper -->
 lsfitstate demandmodeling::GetState()
 {
     return state;
 }
 
+// <!-- Generic helper -->
 ae_int_t demandmodeling::GetInfo()
 {
     return info;
 }
 
+// <!-- Generic helper -->
 lsfitreport demandmodeling::GetReport()
 {
     return rep;
 }
 
+// <!-- Exponential model call -->
 void exponential_demand(const real_1d_array &c, const real_1d_array &x, double &func, void *ptr)
 {
 	std::vector<double> *param = (std::vector<double> *) ptr;
@@ -125,11 +133,13 @@ void exponential_demand(const real_1d_array &c, const real_1d_array &x, double &
     func = log10(c[0]) + k * (exp(-c[1] * c[0] * x[0]) - 1);
 }
 
+// <!-- Exponential model call -->
 void exponential_demand_with_k(const real_1d_array &c, const real_1d_array &x, double &func, void *ptr)
 {
-    func = log10(c[1]) + c[0] * (exp(-c[2] * c[1] * x[0]) - 1);
+    func = log10(c[0]) + c[2] * (exp(-c[1] * c[0] * x[0]) - 1);
 }
 
+// <!-- Exponentiated model call -->
 void exponentiated_demand(const real_1d_array &c, const real_1d_array &x, double &func, void *ptr)
 {
 	std::vector<double> *param = (std::vector<double> *) ptr;
@@ -137,16 +147,19 @@ void exponentiated_demand(const real_1d_array &c, const real_1d_array &x, double
     func = c[0] * pow(10, (k * (exp(-c[1] * c[0] * x[0]) - 1)));
 }
 
+// <!-- Exponentiated model call -->
 void exponentiated_demand_with_k(const real_1d_array &c, const real_1d_array &x, double &func, void *ptr)
 {
-    func = c[1] * pow(10, (c[0] * (exp(-c[2] * c[1] * x[0]) - 1)));
+    func = c[0] * pow(10, (c[2] * (exp(-c[1] * c[0] * x[0]) - 1)));
 }
 
+// <!-- Linear model call -->
 void linear_demand(const real_1d_array &c, const real_1d_array &x, double &func, void *ptr)
 {
     func = log(c[2]) + (c[1] * log(x[0])) - c[0] * x[0];
 }
 
+// <!-- Generic helper -->
 int demandmodeling::SignificantDigits()
 {
     double x = abs(likelyQ0);
@@ -241,6 +254,145 @@ void demandmodeling::BuildLinearString(std::ostringstream &out)
 	out << "}";
 }
 
+// <!-- Brute force start points for exponential model -->
+void demandmodeling::BuildStartString(std::ostringstream &out, double setK, bool isExponentiated)
+{
+	int gridSize = 40;
+
+	double sQ0[gridSize+1];
+	double sA[gridSize+1];
+	double sK[gridSize+1];
+
+	double minQ = getMinimumConsumption();
+	if (!(minQ > 0.0))
+	{
+		minQ = 0.01;
+	}
+	minQ = log(minQ);
+
+	double maxC = log(getMaximumConsumption() * 1.5);
+
+	double minA = 1;
+	double maxA = 1.09;
+
+	double minK = log(0.5);
+	double maxK = log(log(getMaximumConsumption()) + 1);
+
+	for (int i = 0; i <= gridSize; i++)
+	{
+		sQ0[i] = minQ + i * ((maxC - minQ) / gridSize);
+		sA[i] = minA + i * ((maxA - minA) / gridSize);
+		sK[i] = minK + i * ((maxK - minK) / gridSize);
+
+		sQ0[i] = exp(sQ0[i]);
+		sA[i] = log(sA[i]);
+		sK[i] = exp(sK[i]);
+	}
+
+	double ssr = 0;
+	double optimSSR = maxrealnumber;
+
+	double bestK = 1;
+	double bestQ = 1;
+	double bestA = 0.001;
+
+	if (setK < 0)
+	{
+		for (int k = 0; k <= gridSize; k++)
+		{
+			for (int q = 0; q <= gridSize; q++)
+			{
+				for (int a = 0; a <= gridSize; a++)
+				{
+					if (isExponentiated)
+					{
+						GetSumSquaresExponentiated(ssr, sQ0[q], sA[a], sK[k]);
+					}
+					else
+					{
+						GetSumSquaresExponential(ssr, sQ0[q], sA[a], sK[k]);
+					}
+
+					if (ssr < optimSSR)
+					{
+						optimSSR = ssr;
+
+						bestK = sK[k];
+						bestQ = sQ0[q];
+						bestA = sA[a];
+					}
+				}
+			}
+		}
+	}
+	else
+	{
+		for (int q = 0; q <= gridSize; q++)
+		{
+			for (int a = 0; a <= gridSize; a++)
+			{
+				if (isExponentiated)
+				{
+					GetSumSquaresExponentiated(ssr, sQ0[q], sA[a], setK);
+				}
+				else
+				{
+					GetSumSquaresExponential(ssr, sQ0[q], sA[a], setK);
+				}
+
+				if (ssr < optimSSR)
+				{
+					optimSSR = ssr;
+
+					bestQ = sQ0[q];
+					bestA = sA[a];
+				}
+			}
+		}
+	}
+
+	out.clear();
+	out.str("");
+	out << "[";
+	out << bestQ;
+	out << ", ";
+	out << bestA;
+
+	if (setK < 0)
+	{
+		out << ", ";
+		out << bestK;
+	}
+
+	out << "]";
+}
+
+// <!-- Calculate sum squared residuals for exponential model -->
+void demandmodeling::GetSumSquaresExponential(double &ssr, double &q0, double &alpha, double &k)
+{
+	ssr = 0;
+
+    for (int i = 0; i < y.length(); i++)
+    {
+    	projection = log10(q0) + k * (exp(-alpha * q0 * x[i][0]) - 1.0);
+    	ssr = ssr + pow(y[i] - projection, 2);
+    }
+}
+
+// <!-- Calculate sum squared residuals for exponentiated model -->
+void demandmodeling::GetSumSquaresExponentiated(double &ssr, double &q0, double &alpha, double &k)
+{
+	ssr = 0;
+
+    for (int i = 0; i < y.length(); i++)
+    {
+    	projection = q0 * pow(10.0, (k * (exp(-(alpha) * q0 * x[i][0]) - 1.0)));
+
+    	ssr = ssr + pow(y[i] - projection, 2);
+    }
+}
+
+// <!-- Fit exponential demand model -->
 void demandmodeling::FitExponential(const char *mStarts, std::vector<double> mParams)
 {
     SetStarts(mStarts);
@@ -262,6 +414,7 @@ void demandmodeling::FitExponential(const char *mStarts, std::vector<double> mPa
     lsfitresults(state, info, c, rep);
 }
 
+// <!-- Fit exponential demand model with K -->
 void demandmodeling::FitExponentialWithK(const char *mStarts)
 {
     SetStarts(mStarts);
@@ -271,11 +424,10 @@ void demandmodeling::FitExponentialWithK(const char *mStarts)
     lsfitcreatef(x, y, c, diffstep, state);
     lsfitsetbc(state, bndl, bndu);
 
-    // K Q0 alpha
     std::ostringstream mScaleString;
-    mScaleString << "[1.0, 1.0, 1.0e-";
+    mScaleString << "[1.0, 1.0e-";
     mScaleString << (scaleAssessment + (SignificantDigits() - 3));
-    mScaleString << "]";
+    mScaleString << ", 1.0]";
 
     real_1d_array s = mScaleString.str().c_str();
     lsfitsetscale(state, s);
@@ -287,6 +439,7 @@ void demandmodeling::FitExponentialWithK(const char *mStarts)
     lsfitresults(state, info, c, rep);
 }
 
+// <!-- Construct json-readable string from results -->
 void demandmodeling::BuildExponentialString(std::ostringstream &out, std::string mK, std::vector<double> params)
 {
 	out.str("");
@@ -294,10 +447,10 @@ void demandmodeling::BuildExponentialString(std::ostringstream &out, std::string
 
     if ((int) GetInfo() == 2 || (int) GetInfo() == 5)
     {
-        double alpha = (mK.find("fit") != std::string::npos) ? GetState().c[2] : GetState().c[1];
-        double alphase = (mK.find("fit") != std::string::npos) ? GetReport().errpar[2] : GetReport().errpar[1];
+        double alpha = GetState().c[1];
+        double alphase = GetReport().errpar[1];
 
-        double k = (mK.find("fit") != std::string::npos) ? GetState().c[0] : params[0];
+        double k = (mK.find("fit") != std::string::npos) ? GetState().c[2] : params[0];
 
         std::ostringstream mKos;
 
@@ -312,8 +465,8 @@ void demandmodeling::BuildExponentialString(std::ostringstream &out, std::string
 
         std::string kse = mKos.str();
 
-        double q0 = (mK.find("fit") != std::string::npos) ? GetState().c[1] : GetState().c[0];
-        double q0se = (mK.find("fit") != std::string::npos) ? GetReport().errpar[1] : GetReport().errpar[0];
+        double q0 = GetState().c[0];
+        double q0se = GetReport().errpar[0];
 
         double pmaxd = 1/(q0 * alpha * pow(k, 1.5)) * (0.083 * k + 0.65);
         double omaxd = (pow(10, (log10(q0) + (k * (exp(-alpha * q0 * pmaxd) - 1))))) * pmaxd;
@@ -366,6 +519,7 @@ void demandmodeling::BuildExponentialString(std::ostringstream &out, std::string
     out << "}";
 }
 
+// <!-- Fit exponentiated demand model -->
 void demandmodeling::FitExponentiated(const char *mStarts, std::vector<double> mParams)
 {
     SetStarts(mStarts);
@@ -388,6 +542,7 @@ void demandmodeling::FitExponentiated(const char *mStarts, std::vector<double> m
     lsfitresults(state, info, c, rep);
 }
 
+// <!-- Fit exponentiated demand model with K -->
 void demandmodeling::FitExponentiatedWithK(const char *mStarts)
 {
     SetStarts(mStarts);
@@ -396,9 +551,9 @@ void demandmodeling::FitExponentiatedWithK(const char *mStarts)
     lsfitsetbc(state, bndl, bndu);
 
     std::ostringstream mScaleString;
-    mScaleString << "[1.0, 1.0, 1.0e-";
+    mScaleString << "[1.0, 1.0e-";
     mScaleString << (scaleAssessment + SignificantDigits());
-    mScaleString << "]";
+    mScaleString << ", 1.0]";
 
     real_1d_array s = mScaleString.str().c_str();
     lsfitsetscale(state, s);
@@ -410,6 +565,7 @@ void demandmodeling::FitExponentiatedWithK(const char *mStarts)
     lsfitresults(state, info, c, rep);
 }
 
+// <!-- Construct json-readable string from results -->
 void demandmodeling::BuildExponentiatedString(std::ostringstream &out, std::string mK, std::vector<double> params)
 {
 	out.str("");
@@ -417,16 +573,16 @@ void demandmodeling::BuildExponentiatedString(std::ostringstream &out, std::stri
 
     if ((int) GetInfo() == 2 || (int) GetInfo() == 5)
     {
-        double alpha = (mK.find("fit") != std::string::npos) ? GetState().c[2] : GetState().c[1];
-        double alphase = (mK.find("fit") != std::string::npos) ? GetReport().errpar[2] : GetReport().errpar[1];
+        double alpha = GetState().c[1];
+        double alphase = GetReport().errpar[1];
 
-        double k = (mK.find("fit") != std::string::npos) ? GetState().c[0] : params[0];
+        double k = (mK.find("fit") != std::string::npos) ? GetState().c[2] : params[0];
 
         std::ostringstream mKos;
 
         if (mK.find("fit") != std::string::npos)
         {
-        	mKos << GetReport().errpar[0];
+        	mKos << GetReport().errpar[2];
         }
         else
         {
@@ -435,8 +591,8 @@ void demandmodeling::BuildExponentiatedString(std::ostringstream &out, std::stri
 
         std::string kse = mKos.str();
 
-        double q0 = (mK.find("fit") != std::string::npos) ? GetState().c[1] : GetState().c[0];
-        double q0se = (mK.find("fit") != std::string::npos) ? GetReport().errpar[1] : GetReport().errpar[0];
+        double q0 = GetState().c[0];
+        double q0se = GetReport().errpar[0];
 
         double pmaxd = 1/(q0 * alpha * pow(k, 1.5)) * (0.083 * k + 0.65);
         double omaxd = (q0 * (pow(10,(k * (exp(-alpha * q0 * pmaxd) - 1))))) * pmaxd;
@@ -489,6 +645,7 @@ void demandmodeling::BuildExponentiatedString(std::ostringstream &out, std::stri
 	out << "}";
 }
 
+// <!-- Initialize defaults -->
 void demandmodeling::InitializeDefaults()
 {
 	maxits = 10000;
@@ -512,6 +669,7 @@ void demandmodeling::InitializeDefaults()
     scaleAssessment = 3;
 }
 
+// <!-- Generic helper -->
 double demandmodeling::getPbar()
 {
 	std::vector<double> mPrices;
@@ -526,7 +684,7 @@ double demandmodeling::getPbar()
 
     double sum = 0;
 
-    for (int i = 0; i < mPrices.size(); i++)
+    for (int i = 0; i < (int)mPrices.size(); i++)
     {
         sum = sum + mPrices[i];
     }
@@ -534,6 +692,23 @@ double demandmodeling::getPbar()
     return sum / (double) mPrices.size();
 }
 
+// <!-- Generic helper -->
+double demandmodeling::getMinimumCost()
+{
+	double minNonZeroConsumption = maxrealnumber;
+
+    for (int i = 0; i < x.rows(); i++)
+    {
+        if (x[i][0] > 0 && x[i][0] < minNonZeroConsumption)
+        {
+        	minNonZeroConsumption = x[i][0];
+        }
+    }
+
+    return minNonZeroConsumption;
+}
+
+// <!-- Generic helper -->
 double demandmodeling::getMinimumConsumption()
 {
 	double minNonZeroConsumption = maxrealnumber;
@@ -549,6 +724,7 @@ double demandmodeling::getMinimumConsumption()
     return minNonZeroConsumption;
 }
 
+// <!-- Generic helper -->
 double demandmodeling::getMaximumConsumption()
 {
 	double maxNonZeroConsumption = minrealnumber;
@@ -564,50 +740,18 @@ double demandmodeling::getMaximumConsumption()
     return maxNonZeroConsumption;
 }
 
-std::string demandmodeling::buildUpperBoundsKSet()
-{
-	std::ostringstream mUpperBounds;
-	mUpperBounds << "[";
-	mUpperBounds << getMaximumConsumption() * 2;
-	mUpperBounds << ",+inf]";
-
-	return mUpperBounds.str();
-}
-
-std::string demandmodeling::buildStartValuesKSet(double mK)
-{
-    std::ostringstream mStartValues;
-    mStartValues << "[";
-    mStartValues << mK;
-    mStartValues << ", 0.0001]";
-
-	return mStartValues.str();
-}
-
+// <!-- Generic helper -->
 std::string demandmodeling::buildUpperBoundsFit()
 {
     std::ostringstream mUpperBoundos;
-    mUpperBoundos << "[";
-    mUpperBoundos << (((log10(getMaximumConsumption()) - log10(getMinimumConsumption())) + 0.5) * 2);
-    mUpperBoundos << ",";
-    mUpperBoundos << (getMaximumConsumption() * 2);
-    mUpperBoundos << ", +inf]";
+    mUpperBoundos << "[+inf,+inf,";
+    mUpperBoundos << (((log(getMaximumConsumption()) - log(getMinimumConsumption())) + 0.5) * 2);
+    mUpperBoundos << "]";
 
 	return mUpperBoundos.str();
 }
 
-std::string demandmodeling::buildStartValuesFit()
-{
-    std::ostringstream mStartValues;
-    mStartValues << "[";
-    mStartValues << ((log10(getMaximumConsumption()) - log10(getMinimumConsumption())) + 0.5);
-    mStartValues << ",";
-    mStartValues << getMaximumConsumption();
-    mStartValues << ", 0.0001]";
-
-	return mStartValues.str();
-}
-
+// <!-- Generic helper -->
 std::string demandmodeling::getBP0String()
 {
     double maxNonZeroPrice = minrealnumber;
@@ -630,6 +774,7 @@ std::string demandmodeling::getBP0String()
     return priceString;
 }
 
+// <!-- Generic helper -->
 std::string demandmodeling::getBP1String()
 {
     double maxNonZeroPrice = minrealnumber;
@@ -653,6 +798,7 @@ std::string demandmodeling::getBP1String()
 	return priceString;
 }
 
+// <!-- Generic helper -->
 std::string demandmodeling::getOmaxEString()
 {
     double maxExpendNumber = minrealnumber;
@@ -672,6 +818,7 @@ std::string demandmodeling::getOmaxEString()
     return strs.str();
 }
 
+// <!-- Generic helper -->
 std::string demandmodeling::getPmaxEString()
 {
     double maxExpendNumber = minrealnumber;
@@ -693,6 +840,7 @@ std::string demandmodeling::getPmaxEString()
     return strs.str();
 }
 
+// <!-- Generic helper -->
 std::string demandmodeling::getIntensityString()
 {
     double minNonZeroPrice = maxrealnumber;
@@ -711,15 +859,6 @@ std::string demandmodeling::getIntensityString()
 
     return strs.str();
 }
-
-struct QPairFirstComparer
-{
-    template<typename T1, typename T2>
-    bool operator()(const std::pair<double, double> &one, const std::pair<double, double> &two) const
-    {
-        return one.first < two.first;
-    }
-};
 
 demandmodeling::demandmodeling()
 {
