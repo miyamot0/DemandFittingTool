@@ -13,9 +13,10 @@ using namespace std;
 
 int main(int argc, char *argv[])
 {
-	demandmodeling mFitter;
+    demandmodeling mFitter;
+	
     std::ostringstream out;
-	std::vector<double> params;
+    std::vector<double> params;
 
     std::string mPrices = std::string(argv[1]);
     std::string mConsumption = std::string(argv[2]);
@@ -42,102 +43,82 @@ int main(int argc, char *argv[])
     //mK = "range";
     //mK = "1.5";
 
-	mFitter.InitializeDefaults();
-	mFitter.SetModel(mModel.c_str());
-	mFitter.SetX(mPrices.c_str());
-	mFitter.SetY(mConsumption.c_str());
+    mFitter.InitializeDefaults();
+    mFitter.SetModel(mModel.c_str());
+    mFitter.SetX(mPrices.c_str());
+    mFitter.SetY(mConsumption.c_str());
 
+	// <!-- Linear -->
     if (mModel.find("Linear") != std::string::npos)
     {
-        /*
-         * Linear Model Fit conditions
-         * */
-
         mFitter.SetBounds("[+inf,+inf,+inf]", "[-inf,-inf,-inf]");
         mFitter.FitLinear("[1,1,1]");
-
         mFitter.BuildLinearString(out);
     }
+    // <!-- Exponential -->
     else if (mModel.find("Exponential") != std::string::npos)
     {
-        /*
-         * Exponential Model Fit conditions
-         */
-
+    	// <!-- Fit Exponential with K as parameter -->
     	if (mK.find("fit") != std::string::npos)
     	{
-            /*
-             * Fit Exponential, with K as parameter
-             */
-
-            mFitter.SetBounds(mFitter.buildUpperBoundsFit().c_str(), "[0.5, 0.001, -inf]");
-            mFitter.FitExponentialWithK(mFitter.buildStartValuesFit().c_str());
+    		mFitter.BuildStartString(startStream, -1, false);
+            mFitter.SetBounds(mFitter.buildUpperBoundsFit().c_str(), "[0, -inf, 0.5]");
+            mFitter.FitExponentialWithK(startStream.str().c_str());
     	}
+    	// <!-- Fit Exponential with K as fixed parameter -->
     	else if (mK.find("range") != std::string::npos)
     	{
-    		/*
-    		 * Fit Exponential, with K as derived scaling measure
-    		 */
-
-    		double mKvalue = log10(mFitter.getMaximumConsumption()) - log10(mFitter.getMinimumConsumption()) + 0.5;
+    		double mKvalue = log(mFitter.getMaximumConsumption()) - log(mFitter.getMinimumConsumption()) + 0.5;
     		params.push_back(mKvalue);
 
-    		mFitter.SetBounds(mFitter.buildUpperBoundsKSet().c_str(), "[0.0001,-inf]");
-    		mFitter.FitExponential(mFitter.buildStartValuesKSet(mKvalue).c_str(), params);
+    		mFitter.BuildStartString(startStream, mKvalue, false);
+    		mFitter.SetBounds("[+inf,+inf]", "[0,-inf]");
+    		mFitter.FitExponential(startStream.str().c_str(), params);
     	}
+    	// <!-- Fit Exponential with K as fixed parameter -->
     	else
     	{
-    		/*
-    		 * Fit Exponential, with K as assigned value
-    		 */
-
     		double mKvalue = atof(mK.c_str());
     		params.push_back(mKvalue);
 
-    		mFitter.SetBounds(mFitter.buildUpperBoundsKSet().c_str(), "[0.0001,-inf]");
-            mFitter.FitExponential(mFitter.buildStartValuesKSet(mKvalue).c_str(), params);
+    		mFitter.BuildStartString(startStream, mKvalue, false);
+
+    		cout << startStream.str() << endl;
+    		mFitter.SetBounds("[+inf,+inf]", "[0,-inf]");
+            mFitter.FitExponential(startStream.str().c_str(), params);
     	}
 
     	mFitter.BuildExponentialString(out, mK, params);
     }
+    // <!-- Exponentiated -->
     else if (mModel.find("Exponentiated") != std::string::npos)
     {
-        /**
-         * Exponentiated Model Fit conditions
-         */
-
+    	// <!-- Fit Exponentiated with K as parameter -->
     	if (mK.find("fit") != std::string::npos)
     	{
-    		/*
-    		 * Fit Exponentiated, with K as fitted parameter
-    		 */
-
-    		mFitter.SetBounds(mFitter.buildUpperBoundsFit().c_str(), "[0.5, 0.001, -inf]");
-            mFitter.FitExponentiatedWithK(mFitter.buildStartValuesFit().c_str());
+    		mFitter.BuildStartString(startStream, -1, true);
+            mFitter.SetBounds(mFitter.buildUpperBoundsFit().c_str(), "[0, -inf, 0.5]");
+            mFitter.FitExponentiatedWithK(startStream.str().c_str());
     	}
+    	// <!-- Fit Exponentiated with K as fixed parameter -->
     	else if (mK.find("range") != std::string::npos)
     	{
-    		/*
-    		 * Fit Exponentiated, with K as derived scaling measure
-    		 */
-
-    		double mKvalue = log10(mFitter.getMaximumConsumption()) - log10(mFitter.getMinimumConsumption()) + 0.5;
+    		double mKvalue = log(mFitter.getMaximumConsumption()) - log(mFitter.getMinimumConsumption()) + 0.5;
     		params.push_back(mKvalue);
 
-    		mFitter.SetBounds(mFitter.buildUpperBoundsKSet().c_str(), "[0.0001,-inf]");
-    		mFitter.FitExponentiated(mFitter.buildStartValuesKSet(mKvalue).c_str(), params);
+    		mFitter.BuildStartString(startStream, mKvalue, true);
+    		mFitter.SetBounds("[+inf,+inf]", "[0,-inf]");
+    		mFitter.FitExponentiated(startStream.str().c_str(), params);
     	}
+    	// <!-- Fit Exponential with K as fixed parameter -->
     	else
     	{
-    		/*
-    		 * Fit Exponentiated, with K as assigned value
-    		 */
-
     		double mKvalue = atof(mK.c_str());
     		params.push_back(mKvalue);
 
-    		mFitter.SetBounds(mFitter.buildUpperBoundsKSet().c_str(), "[0.0001,-inf]");
-    		mFitter.FitExponentiated(mFitter.buildStartValuesKSet(mKvalue).c_str(), params);
+    		mFitter.BuildStartString(startStream, mKvalue, true);
+    		mFitter.SetBounds("[+inf,+inf]", "[0,-inf]");
+    		mFitter.FitExponentiated(startStream.str().c_str(), params);
     	}
 
     	mFitter.BuildExponentiatedString(out, mK, params);
