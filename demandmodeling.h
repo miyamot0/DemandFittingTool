@@ -80,6 +80,8 @@ public:
     void FitExponentiated(const char *mStarts, std::vector<double> mParams);
     void FitExponentiatedWithK(const char *mStarts);
 
+    double getMinimumCost();
+
     double getMinimumConsumption();
     double getMaximumConsumption();
 
@@ -91,17 +93,21 @@ public:
     std::string getPmaxEString();
     std::string getIntensityString();
 
-    std::string buildUpperBoundsKSet();
-    std::string buildStartValuesKSet(double mK);
+    std::string buildStartValues(double q0, double alpha);
+    void buildStartValuesWithK(std::ostringstream &out);
 
     std::string buildUpperBoundsFit();
-    std::string buildStartValuesFit();
 
     void InitializeDefaults();
+
+    void BuildStartString(std::ostringstream &out, double setK, bool isExponentiated);
 
     void BuildLinearString(std::ostringstream &out);
     void BuildExponentialString(std::ostringstream &out, std::string mK, std::vector<double> params);
     void BuildExponentiatedString(std::ostringstream &out, std::string mK, std::vector<double> params);
+
+    void GetSumSquaresExponential(double &ssr, double &q0, double &alpha, double &k);
+    void GetSumSquaresExponentiated(double &ssr, double &q0, double &alpha, double &k);
 
     bool raisedFlag;
 
@@ -151,6 +157,8 @@ private:
     double deltaQ;
     double bounceThreshold;
     double bounceScore;
+
+    double projection;
 
 };
 
